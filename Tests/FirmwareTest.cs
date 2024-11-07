@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Linq;
 using Xunit;
 
 namespace FirmwareFile.Test
@@ -1386,6 +1387,88 @@ namespace FirmwareFile.Test
             Assert.Equal(data1, firmware.Blocks[0].Data);
             Assert.Equal(address2, firmware.Blocks[1].StartAddress);
             Assert.Equal(data2, firmware.Blocks[1].Data);
+        }
+
+        [Fact]
+        public void GetFillData()
+        {
+            // Prepare
+
+            var firmware = new Firmware(true);
+            var data1 = new byte[] { 1, 2, 0x45, 3, 0x1, 0x16 };
+            UInt32 address1 = 0x1000;
+
+            var data2 = new byte[] { 179, 7, 148, 32, 0, 99 };
+            UInt32 address2 = 0x1010;
+
+            firmware.SetData(address1, data1);
+            firmware.SetData(address2, data2);
+
+            // Execute
+
+         
+            var data3 = firmware.GetFillData(0xff);
+
+
+            var CheckData = new byte[] { 
+                1, 2, 0x45, 3, 0x1, 0x16 ,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            };
+
+            var CheckData2 = new byte[] {
+               179, 7, 148, 32, 0, 99
+            };
+            // Check
+
+            Assert.True(firmware.HasExplicitAddresses);
+            Assert.Equal(2, firmware.Blocks.Length);
+            Assert.Equal(address1, firmware.Blocks[0].StartAddress);
+            Assert.Equal(data1, firmware.Blocks[0].Data);
+            Assert.Equal(address2, firmware.Blocks[1].StartAddress);
+            Assert.Equal(data2, firmware.Blocks[1].Data);
+
+            Assert.Equal(CheckData, data3[0].Data);
+            Assert.Equal(CheckData2, data3[1].Data);
+        }
+
+        [Fact]
+        public void GetFillData_16()
+        {
+            // Prepare
+
+            var firmware = new Firmware(true,16);
+            var data1 = new byte[] { 1, 2, 0x45, 3, 0x1, 0x16 };
+            UInt32 address1 = 0x1000;
+
+            var data2 = new byte[] { 179, 7, 148, 32, 0, 99 };
+            UInt32 address2 = 0x1005;
+
+            firmware.SetData(address1, data1);
+            firmware.SetData(address2, data2);
+
+            // Execute
+
+
+            var data3 = firmware.GetFillData(0xff);
+
+
+            var CheckData = new byte[] {
+                1, 2, 0x45, 3, 0x1, 0x16 ,0xff, 0xff, 0xff, 0xff,
+            };
+
+            var CheckData2 = new byte[] {
+               179, 7, 148, 32, 0, 99
+            };
+            // Check
+
+            Assert.True(firmware.HasExplicitAddresses);
+            Assert.Equal(2, firmware.Blocks.Length);
+            Assert.Equal(address1, firmware.Blocks[0].StartAddress);
+            Assert.Equal(data1, firmware.Blocks[0].Data);
+            Assert.Equal(address2, firmware.Blocks[1].StartAddress);
+            Assert.Equal(data2, firmware.Blocks[1].Data);
+
+            Assert.Equal(CheckData, data3[0].Data);
+            Assert.Equal(CheckData2, data3[1].Data);
         }
     }
 }

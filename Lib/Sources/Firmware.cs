@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 #nullable enable
 
@@ -35,6 +36,45 @@ namespace FirmwareFile
         /*===========================================================================
          *                            PUBLIC METHODS
          *===========================================================================*/
+
+        /// <summary>
+        /// 从最早开始的块，没有数据会进行 filldata 填充，直到最后地址
+        /// </summary>
+        /// <param name="filldata">需要填充的数据，对于非一个字节对齐的地址的块会按照一个地址进行重复</param>
+        /// <returns></returns>
+        public List<FirmwareBlock> GetFillData(byte filldata)
+        {
+            List<FirmwareBlock> ret = new List<FirmwareBlock>();
+            for (int i = 0; i < Blocks.Length - 1; i++)
+            {
+                var CurentBlock = Blocks[i];
+                var LastBlock = Blocks[i + 1];
+
+                var CurentEndaddress = CurentBlock.StartAddress + CurentBlock.Size;
+                var LastCuernBlocksEndaddress = LastBlock.StartAddress;
+
+                var AddressDiff = LastCuernBlocksEndaddress - CurentEndaddress;
+
+                if (AddressDiff != 0)
+                {
+                    byte[] NewData = new byte[CurentBlock.Data.Length + AddressDiff * BitWidth / 8];
+                    for (int j = 0; j < NewData.Length; j++)
+                    {
+                        NewData[j] = filldata;
+                    }
+
+                    Array.Copy(CurentBlock.Data, NewData, CurentBlock.Data.Length);
+
+                    ret.Add(new FirmwareBlock(CurentBlock.StartAddress, NewData,BitWidth));
+                }
+
+            }
+
+            ret.Add(new FirmwareBlock(Blocks[Blocks.Length - 1].StartAddress, Blocks[Blocks.Length - 1].Data, BitWidth));
+            return ret;
+        }
+
+
 
         /**
          * Writes a data block at the given address, overwriting any previously set data if necessary.
