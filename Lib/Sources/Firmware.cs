@@ -217,7 +217,7 @@ namespace FirmwareFile
         /// <summary>
         /// Data bit width => how many bits of data does an address contain usually 8 bit (1 byte)
         /// </summary>
-        private byte BitWidth;
+        public byte BitWidth { get; private set; }
 
         /*===========================================================================
          *                          INTERNAL CONSTRUCTORS
