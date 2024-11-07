@@ -298,7 +298,7 @@ namespace FirmwareFile.Test
 
             // Execute
 
-            UInt32 address2 = 0x8004;
+            UInt32 address2 = 0x8002;
 
             fwBlock.EraseDataRangeAfterAddress(address2);
 

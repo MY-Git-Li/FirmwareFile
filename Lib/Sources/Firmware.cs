@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
 
 #nullable enable
 
@@ -38,10 +39,10 @@ namespace FirmwareFile
          *===========================================================================*/
 
         /// <summary>
-        /// 从最早开始的块，没有数据会进行 filldata 填充，直到最后地址
+        /// 从最早开始的块，没有数据会进行 filldata 填充，直到最后地址 => 从最低的地址开始线性增加
         /// </summary>
         /// <param name="filldata">需要填充的数据，对于非一个字节对齐的地址的块会按照一个地址进行重复</param>
-        /// <returns></returns>
+        /// <returns>所有的块，块间不连续的地址用filldata填充</returns>
         public List<FirmwareBlock> GetFillData(byte filldata)
         {
             List<FirmwareBlock> ret = new List<FirmwareBlock>();
@@ -74,16 +75,84 @@ namespace FirmwareFile
             return ret;
         }
 
+        public struct FirmwareLineBlock
+        {
+            public uint StartAddress;
+            public byte[] Data;
+        }
 
+        /// <summary>
+        /// 得到固定隔间的线性块，每个块之间的大小固定，且从最低的地址开始线性增加
+        /// </summary>
+        /// <param name="Splitsize">每个块之间的大小,按照字节来计算</param>
+        /// <param name="filldata">填充的数据</param>
+        /// <returns></returns>
+        public List<FirmwareLineBlock> GetSplitLineBlock(uint Splitsize, byte filldata)
+        {
+            List<FirmwareLineBlock> ret = new List<FirmwareLineBlock>();
+
+            var Fillblocks = GetFillData(filldata);
+
+            var AllCountByte = Fillblocks.Sum(s => s.Data.Length);
+            byte[] LineBlockeData = new byte[AllCountByte];
+            int currenLen = 0;
+            foreach (var array in Fillblocks)
+            {
+                Array.Copy(array.Data, 0, LineBlockeData, currenLen, array.Data.Length);
+                currenLen += array.Data.Length;
+            }
+
+            SplitData(Splitsize, filldata, ret, Fillblocks[0].StartAddress, LineBlockeData);
+
+            return ret;
+        }
+
+        /// <summary>
+        /// 将数据以固定的长度分割开
+        /// </summary>
+        /// <param name="Splitsize">固定的长度</param>
+        /// <param name="filldata">当数据长度不足时，默认填入的数据</param>
+        /// <param name="ret">返回的集合</param>
+        /// <param name="Startadress">输入的线性起始地址</param>
+        /// <param name="LineBlockeData">输入的线性数据</param>
+        private static void SplitData(uint Splitsize, byte filldata, List<FirmwareLineBlock> ret, uint Startadress, byte[] LineBlockeData)
+        {
+            uint groupSize = Splitsize; // 每组的大小  
+            uint totalGroups = ((uint)LineBlockeData.Length + groupSize - 1) / groupSize; // 计算总组数  
+
+            for (uint i = 0; i < totalGroups; i++)
+            {
+                uint currentGroupSize = Math.Min(groupSize, (uint)LineBlockeData.Length - i * groupSize);
+
+                FirmwareLineBlock temp = new FirmwareLineBlock();
+
+                byte[] group = new byte[groupSize]; //定义固定大小的组  
+                temp.Data = group;
+                temp.StartAddress = Startadress + i * groupSize;
+
+                // 复制当前组中的数据  
+                Array.Copy(LineBlockeData, i * groupSize, group, 0, currentGroupSize);
+
+                // 如果当前组不足 1024 字节，填充 0xFF  
+                if (currentGroupSize < groupSize)
+                {
+                    for (uint j = currentGroupSize; j < groupSize; j++)
+                    {
+                        group[j] = filldata;
+                    }
+                }
+                ret.Add(temp);
+            }
+        }
 
         /**
-         * Writes a data block at the given address, overwriting any previously set data if necessary.
-         * 
-         * FirmwareBlocks are automatically created, modified or merged as necessary as a result of inserting the data block.
-         * 
-         * @param [in] startAddress Starting address for the data block
-         * @param [in] data Data for the data block
-         */
+* Writes a data block at the given address, overwriting any previously set data if necessary.
+* 
+* FirmwareBlocks are automatically created, modified or merged as necessary as a result of inserting the data block.
+* 
+* @param [in] startAddress Starting address for the data block
+* @param [in] data Data for the data block
+*/
         public void SetData( UInt32 startAddress, byte[] data )
         {
             if( data.Length == 0 )
