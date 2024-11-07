@@ -53,6 +53,29 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void SetData_NestedOverlap_16width()
+        {
+            // Prepare
+
+            var data1 = new byte[] { 1, 2, 45, 3, 45, 3, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data1,16);
+
+            // Execute
+
+            var data2 = new byte[] { 45, 6, 145, 32 };
+            UInt32 address2 = 0x8002;
+
+            fwBlock.SetDataAtAddress(address2, data2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Equal(new byte[] { 1, 2, 45, 3, 45, 6, 145, 32 }, fwBlock.Data);
+        }
+
+        [Fact]
         public void SetData_HeadOverlap()
         {
             // Prepare
@@ -74,6 +97,30 @@ namespace FirmwareFile.Test
             Assert.Equal( address2, fwBlock.StartAddress );
             Assert.Equal( new byte[] { 45, 3, 145, 32, 2, 45, 3, 255, 47, 90, 101 }, fwBlock.Data );
         }
+
+        [Fact]
+        public void SetData_HeadOverlap_16width()
+        {
+            // Prepare
+
+            var data1 = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8001;
+
+            var fwBlock = new FirmwareBlock(address1, data1,16);
+
+            // Execute
+
+            var data2 = new byte[] { 45, 3, 145, 32 };
+            UInt32 address2 = 0x8000;
+
+            fwBlock.SetDataAtAddress(address2, data2);
+
+            // Check
+
+            Assert.Equal(address2, fwBlock.StartAddress);
+            Assert.Equal(new byte[] { 45, 3, 145, 32, 45, 3, 255, 47, 90, 101 }, fwBlock.Data);
+        }
+
 
         [Fact]
         public void SetData_TailOverlap()
@@ -99,6 +146,30 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void SetData_TailOverlap_16width()
+        {
+            // Prepare
+
+            var data1 = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data1, 16);
+
+            // Execute
+
+            var data2 = new byte[] { 45, 3, 145, 32 };
+            UInt32 address2 = 0x8003;
+
+            fwBlock.SetDataAtAddress(address2, data2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Equal(new byte[] { 1, 2, 45, 3, 255, 47, 45, 3, 145, 32 }, fwBlock.Data);
+        }
+
+
+        [Fact]
         public void SetData_FullOverlap()
         {
             // Prepare
@@ -122,6 +193,31 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void SetData_FullOverlap_16width()
+        {
+            // Prepare
+
+            var data2 = new byte[] { 45, 3, 145, 32 };
+            UInt32 address2 = 0x8002;
+
+            var fwBlock = new FirmwareBlock(address2, data2,16);
+
+            // Execute
+
+            var data1 = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            fwBlock.SetDataAtAddress(address1, data1);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Equal(data1, fwBlock.Data);
+        }
+
+
+
+        [Fact]
         public void SetData_NoOverlap()
         {
             // Prepare
@@ -129,7 +225,7 @@ namespace FirmwareFile.Test
             var data1 = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
             UInt32 address1 = 0x8000;
 
-            var fwBlock = new FirmwareBlock( address1, data1 );
+            var fwBlock = new FirmwareBlock( address1, data1,16);
 
             // Execute
 
@@ -142,6 +238,31 @@ namespace FirmwareFile.Test
 
             Assert.Contains( "Inserted data region does not overlap the block data region", ex.Message );
         }
+
+        [Fact]
+        public void SetData_NoOverlap_16width()
+        {
+            // Prepare
+
+            var data1 = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data1, 16);
+
+            // Execute
+
+            var data2 = new byte[] { 45, 3, 145, 32 };
+            UInt32 address2 = 0x8010;
+
+            var ex = Assert.Throws<ArgumentException>(() => fwBlock.SetDataAtAddress(address2, data2));
+
+            // Check
+
+            Assert.Contains("Inserted data region does not overlap the block data region", ex.Message);
+        }
+
+
+
 
         [Fact]
         public void EraseDataRangeAfter_PartialOverlap()
@@ -163,6 +284,28 @@ namespace FirmwareFile.Test
 
             Assert.Equal( address1, fwBlock.StartAddress );
             Assert.Equal( new byte[] { 1, 2, 45, 3 }, fwBlock.Data );
+        }
+
+        [Fact]
+        public void EraseDataRangeAfter_PartialOverlap_16width()
+        {
+            // Prepare
+
+            var data = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data, 16);
+
+            // Execute
+
+            UInt32 address2 = 0x8004;
+
+            fwBlock.EraseDataRangeAfterAddress(address2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Equal(new byte[] { 1, 2, 45, 3 }, fwBlock.Data);
         }
 
         [Fact]
@@ -188,6 +331,30 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void EraseDataRangeBefore_PartialOverlap_16width()
+        {
+            // Prepare
+
+            var data = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data,16);
+
+            // Execute
+
+            UInt32 address2 = 0x8002;
+
+            fwBlock.EraseDataRangeBeforeAddress(address2);
+
+            // Check
+
+            Assert.Equal(address2, fwBlock.StartAddress);
+            Assert.Equal(new byte[] { 255, 47, 90, 101 }, fwBlock.Data);
+        }
+
+
+
+        [Fact]
         public void EraseDataRangeAfter_NoOverlap()
         {
             // Prepare
@@ -208,6 +375,30 @@ namespace FirmwareFile.Test
             Assert.Equal( address1, fwBlock.StartAddress );
             Assert.Equal( data, fwBlock.Data );
         }
+
+        [Fact]
+        public void EraseDataRangeAfter_NoOverlap_16width()
+        {
+            // Prepare
+
+            var data = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data, 16);
+
+            // Execute
+
+            UInt32 address2 = 0x8010;
+
+            fwBlock.EraseDataRangeAfterAddress(address2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Equal(data, fwBlock.Data);
+        }
+
+
 
         [Fact]
         public void EraseDataRangeBefore_NoOverlap()
@@ -232,6 +423,30 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void EraseDataRangeBefore_NoOverlap_16width()
+        {
+            // Prepare
+
+            var data = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data,16);
+
+            // Execute
+
+            UInt32 address2 = 0x7FFF;
+
+            fwBlock.EraseDataRangeBeforeAddress(address2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Equal(data, fwBlock.Data);
+        }
+
+
+
+        [Fact]
         public void EraseDataRangeAfter_FullOverlap()
         {
             // Prepare
@@ -254,6 +469,30 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void EraseDataRangeAfter_FullOverlap_16width()
+        {
+            // Prepare
+
+            var data = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data,16);
+
+            // Execute
+
+            UInt32 address2 = 0x7000;
+
+            fwBlock.EraseDataRangeAfterAddress(address2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Empty(fwBlock.Data);
+        }
+
+
+
+        [Fact]
         public void EraseDataRangeBefore_FullOverlap()
         {
             // Prepare
@@ -273,6 +512,28 @@ namespace FirmwareFile.Test
 
             Assert.Equal( address1, fwBlock.StartAddress );
             Assert.Empty( fwBlock.Data );
+        }
+
+        [Fact]
+        public void EraseDataRangeBefore_FullOverlap_16width()
+        {
+            // Prepare
+
+            var data = new byte[] { 1, 2, 45, 3, 255, 47, 90, 101 };
+            UInt32 address1 = 0x8000;
+
+            var fwBlock = new FirmwareBlock(address1, data,16);
+
+            // Execute
+
+            UInt32 address2 = 0x9000;
+
+            fwBlock.EraseDataRangeBeforeAddress(address2);
+
+            // Check
+
+            Assert.Equal(address1, fwBlock.StartAddress);
+            Assert.Empty(fwBlock.Data);
         }
 
     }

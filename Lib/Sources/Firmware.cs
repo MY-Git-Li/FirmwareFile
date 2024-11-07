@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 #nullable enable
 
@@ -49,8 +50,13 @@ namespace FirmwareFile
             {
                 return;
             }
+            if (data.Length % ( BitWidth / 0x8) != 0)
+            {
+                throw new ArgumentException("Bit width and data are not aligned");
+            }
 
-            UInt32 endAddress = startAddress + (uint) data.Length;
+
+            UInt32 endAddress = startAddress + (uint) data.Length / (uint)(BitWidth / 0x8);
             FirmwareBlock? startBlock = null;
             FirmwareBlock? endBlock = null;
 
@@ -89,9 +95,9 @@ namespace FirmwareFile
                 startBlock.SetDataAtOffset( (int) ( startAddress - startBlock.StartAddress ), data );
 
                 int endBlockOffset = (int) ( endAddress - endBlock.StartAddress );
-                int tailSize = (int) ( endBlock.Size - endBlockOffset );
+                int tailSize = (int) ( endBlock.Size - endBlockOffset) * BitWidth / 0x8;
                 var tailData = new byte[tailSize];
-                Array.Copy( endBlock.Data, endBlockOffset, tailData, 0, tailSize );
+                Array.Copy( endBlock.Data, endBlockOffset * BitWidth / 0x8, tailData, 0, tailSize );
                 startBlock.AppendData( tailData );
 
                 m_blocks.Remove( endBlock );
@@ -112,7 +118,7 @@ namespace FirmwareFile
             {
                 // Data does not overlap any other block => Create new block
 
-                m_blocks.Add( new FirmwareBlock( startAddress, data ) );
+                m_blocks.Add( new FirmwareBlock( startAddress, data, BitWidth) );
             }
         }
 
@@ -208,13 +214,20 @@ namespace FirmwareFile
             return null;
         }
 
+        /// <summary>
+        /// Data bit width => how many bits of data does an address contain usually 8 bit (1 byte)
+        /// </summary>
+        private byte BitWidth;
+
         /*===========================================================================
          *                          INTERNAL CONSTRUCTORS
          *===========================================================================*/
 
-        internal Firmware( bool hasExplicitAddresses )
+        internal Firmware( bool hasExplicitAddresses , byte bitWidth = 8)
         {
+            Debug.Assert(bitWidth % 8 == 0, "BitWidth: The data bit width can only be a multiple of 8 bits (1 byte)");
             HasExplicitAddresses = hasExplicitAddresses;
+            BitWidth = bitWidth;
         }
 
         /*===========================================================================

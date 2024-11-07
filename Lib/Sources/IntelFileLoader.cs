@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -24,9 +25,10 @@ namespace FirmwareFile
          * 
          * @param [in] filePath Path to the file containing the firmware
          */
-        public static Firmware Load( string filePath )
+        public static Firmware Load( string filePath, byte BitWidth = 8)
         {
-            return LoadAsync( filePath ).GetAwaiter().GetResult();
+            Debug.Assert(BitWidth % 8 == 0, "BitWidth: The data bit width can only be a multiple of 8 bits (1 byte)");
+            return LoadAsync( filePath, BitWidth).GetAwaiter().GetResult();
         }
 
         /**
@@ -34,9 +36,10 @@ namespace FirmwareFile
          * 
          * @param [in] stream Stream to provide the firmware file contents
          */
-        public static Firmware Load( Stream stream )
+        public static Firmware Load( Stream stream , byte BitWidth = 8)
         {
-            return LoadAsync( stream ).GetAwaiter().GetResult();
+            Debug.Assert(BitWidth % 8 == 0, "BitWidth: The data bit width can only be a multiple of 8 bits (1 byte)");
+            return LoadAsync( stream , BitWidth).GetAwaiter().GetResult();
         }
 
         /**
@@ -44,10 +47,11 @@ namespace FirmwareFile
          * 
          * @param [in] filePath Path to the file containing the firmware
          */
-        public static async Task<Firmware> LoadAsync( string filePath )
+        public static async Task<Firmware> LoadAsync( string filePath , byte BitWidth = 8)
         {
+            Debug.Assert(BitWidth % 8 == 0, "BitWidth: The data bit width can only be a multiple of 8 bits (1 byte)");
             using var fileStream = new FileStream( filePath, FileMode.Open, FileAccess.Read );
-            return await LoadAsync( fileStream );
+            return await LoadAsync( fileStream , BitWidth);
         }
 
         /**
@@ -55,9 +59,9 @@ namespace FirmwareFile
          * 
          * @param [in] stream Stream to provide the firmware file contents
          */
-        public static async Task<Firmware> LoadAsync( Stream stream )
+        public static async Task<Firmware> LoadAsync( Stream stream, byte BitWidth = 8)
         {
-            var fwFile = new Firmware( true );
+            var fwFile = new Firmware( true, BitWidth);
 
             var fileReader = new StreamReader( stream );
 

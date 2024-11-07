@@ -6,6 +6,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 
 namespace FirmwareFile
 {
@@ -32,16 +34,23 @@ namespace FirmwareFile
         /**
          * Size of the firmware block.
          */
-        public UInt32 Size { get => (uint) m_data.Count; }
+        public UInt32 Size { get => (uint) m_data.Count /(uint)(BitWidth / 0x8); }
+
+        /// <summary>
+        /// Data bit width => how many bits of data does an address contain usually 8 bit (1 byte)
+        /// </summary>
+        private byte BitWidth;
 
         /*===========================================================================
          *                         INTERNAL CONSTRUCTORS
          *===========================================================================*/
 
-        internal FirmwareBlock( UInt32 startAddress, byte[] data )
+        internal FirmwareBlock( UInt32 startAddress, byte[] data ,byte bitWidth = 8)
         {
+            Debug.Assert(bitWidth % 8 == 0, "BitWidth: The data bit width can only be a multiple of 8 bits (1 byte)");
             StartAddress = startAddress;
             m_data = new List<byte>( data );
+            BitWidth = bitWidth;
         }
 
         /*===========================================================================
@@ -57,19 +66,19 @@ namespace FirmwareFile
 
         internal void SetDataAtOffset( int offset, byte[] data )
         {
-            int endOffset = offset + data.Length;
+            int endOffset = offset + data.Length / (BitWidth / 0x8);
 
             if( ( offset >= 0 ) && ( offset <= Size ) )
             {
                 if( endOffset < Size )
                 {
-                    m_data.RemoveRange( offset, data.Length );
+                    m_data.RemoveRange( offset * (BitWidth / 0x8), endOffset == offset ? data.Length/ (BitWidth / 0x8): data.Length);
                 }
                 else
                 {
-                    m_data.RemoveRange( offset, (int) ( Size - offset ) );
+                    m_data.RemoveRange( offset * (BitWidth / 0x8), (int) ( Size  - offset ) * (BitWidth / 0x8));
                 }
-                m_data.InsertRange( offset, data );
+                m_data.InsertRange( offset * (BitWidth / 0x8), data );
             }
             else if( ( offset < 0 ) && ( endOffset >= 0 ) )
             {
@@ -81,7 +90,7 @@ namespace FirmwareFile
                 }
                 else if( endOffset > 0 )
                 {
-                    m_data.RemoveRange( 0, endOffset );
+                    m_data.RemoveRange( 0, endOffset * (BitWidth / 0x8));
                 }
                 m_data.InsertRange( 0, data );
             }
@@ -123,9 +132,9 @@ namespace FirmwareFile
 
         internal void EraseDataRangeAfterOffset( uint offset )
         {
-            if( offset < Size )
+            if( offset < Size * BitWidth / 0x8)
             {
-                m_data.RemoveRange( (int) offset, (int) ( Size - offset ) );
+                m_data.RemoveRange( (int) offset , (int) ( Size * BitWidth / 0x8 - offset ) );
             }
         }
 
@@ -133,7 +142,7 @@ namespace FirmwareFile
         {
             if( offset < Size )
             {
-                m_data.RemoveRange( 0, (int) offset );
+                m_data.RemoveRange( 0, (int) offset * BitWidth / 0x8);
                 StartAddress += offset;
             }
             else

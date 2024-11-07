@@ -52,6 +52,46 @@ namespace FirmwareFile.Test
         }
 
         [Fact]
+        public void SetData_fault_16width()
+        {
+            // Prepare
+
+            var firmware = new Firmware(false,16);
+            var data = new byte[] { 1, 2, 45, 3, 255 };
+            UInt32 address = 0x1000;
+
+            // Execute
+
+            var ex = Assert.Throws<ArgumentException>(() => firmware.SetData(address, data));
+
+            // Check
+
+            Assert.Contains("Bit width and data are not aligned", ex.Message);
+           
+        }
+
+        [Fact]
+        public void SetData_Single_16witdh()
+        {
+            // Prepare
+
+            var firmware = new Firmware(false,16);
+            var data = new byte[] { 1, 2, 45, 3, 255,255 };
+            UInt32 address = 0x1000;
+
+            // Execute
+
+            firmware.SetData(address, data);
+
+            // Check
+
+            Assert.False(firmware.HasExplicitAddresses);
+            Assert.Single(firmware.Blocks);
+            Assert.Equal(address, firmware.Blocks[0].StartAddress);
+            Assert.Equal(data, firmware.Blocks[0].Data);
+        }
+
+        [Fact]
         public void SetData_Double_NonOverlap()
         {
             // Prepare
@@ -77,6 +117,34 @@ namespace FirmwareFile.Test
             Assert.Equal( data1, firmware.Blocks[0].Data );
             Assert.Equal( address2, firmware.Blocks[1].StartAddress );
             Assert.Equal( data2, firmware.Blocks[1].Data );
+        }
+
+        [Fact]
+        public void SetData_Double_NonOverlap_16width()
+        {
+            // Prepare
+
+            var firmware = new Firmware(true,16);
+
+            var data1 = new byte[] { 1, 2, 45, 3, 255,255 };
+            UInt32 address1 = 0x1000;
+
+            var data2 = new byte[] { 45, 3, 145, 32, 0, 99 };
+            UInt32 address2 = 0x1010;
+
+            // Execute
+
+            firmware.SetData(address1, data1);
+            firmware.SetData(address2, data2);
+
+            // Check
+
+            Assert.True(firmware.HasExplicitAddresses);
+            Assert.Equal(2, firmware.Blocks.Length);
+            Assert.Equal(address1, firmware.Blocks[0].StartAddress);
+            Assert.Equal(data1, firmware.Blocks[0].Data);
+            Assert.Equal(address2, firmware.Blocks[1].StartAddress);
+            Assert.Equal(data2, firmware.Blocks[1].Data);
         }
 
         [Fact]
