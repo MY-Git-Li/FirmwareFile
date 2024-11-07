@@ -134,7 +134,7 @@ namespace FirmwareFile
         {
             if( offset < Size * BitWidth / 0x8)
             {
-                m_data.RemoveRange( (int) offset , (int) ( Size * BitWidth / 0x8 - offset ) );
+                m_data.RemoveRange( (int) offset * BitWidth / 0x8, (int) ( Size  - offset ) * BitWidth / 0x8);
             }
         }
 

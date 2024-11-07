@@ -136,6 +136,10 @@ namespace FirmwareFile
             {
                 return;
             }
+            //if (size % (BitWidth / 0x8) != 0)
+            //{
+            //    throw new ArgumentException("Bit width and data are not aligned");
+            //}
 
             UInt32 endAddress = startAddress + size;
 
@@ -149,9 +153,9 @@ namespace FirmwareFile
                     // Region overlaps the middle of a block => Split block
 
                     int endBlockOffset = (int) ( endAddress - blockStartAddress );
-                    int tailSize = (int) ( block.Size - endBlockOffset );
+                    int tailSize = (int) ( block.Size - endBlockOffset) * BitWidth / 0x8;
                     var tailData = new byte[tailSize];
-                    Array.Copy( block.Data, endBlockOffset, tailData, 0, tailSize );
+                    Array.Copy( block.Data, endBlockOffset * BitWidth / 0x8, tailData, 0, tailSize );
 
                     m_blocks.Add( new FirmwareBlock( endAddress, tailData ) );
 
@@ -205,8 +209,8 @@ namespace FirmwareFile
 
                 if( ( blockStartAddress <= startAddress ) && ( blockEndAddress >= endAddress ) )
                 {
-                    var returnData = new byte[size];
-                    Array.Copy( block.Data, (int) ( startAddress - blockStartAddress ), returnData, 0, size );
+                    var returnData = new byte[size * BitWidth / 0x8];
+                    Array.Copy( block.Data, (int) ( startAddress - blockStartAddress ) * BitWidth / 0x8, returnData, 0, size * BitWidth / 0x8);
                     return returnData;
                 }
             }
